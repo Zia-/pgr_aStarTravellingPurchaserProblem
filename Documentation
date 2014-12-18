@@ -1,14 +1,6 @@
--- 1. In order to use the pgr_aStarTravellingPurchaserProblem() we need to create a sample Db tables. Expecting that
+-- 1. In order to use the pgr_aStarTravellingPurchaserProblem() we need to create a sample Db table. Expecting that
 -- already the OSM data has been imported into the Db (ways and ways_vertices_pgr tables are there in the Db), create
--- the remaining table using the followind SQL command as our sample table. OSM data used here is attached in the repository.
-create table main_class_stops(
-	class text,
-	id integer
-);
-create table sub_class_stops(
-	subclass text,
-	id integer
-);
+-- this table using the followind SQL command as our sample table. OSM data used here is attached in the repository.
 create table individual_stops(
 	individualstops text,
 	id integer,
@@ -18,27 +10,14 @@ create table individual_stops(
 SELECT AddGeometryColumn ('public','individual_stops','the_geom',4326,'POINT',2);
 
 -- 2. Populate the above created tables with some random values
-insert into main_class_stops (class, id) values ('Food', 01);
-insert into main_class_stops (class, id) values ('Bank', 02);
-insert into main_class_stops (class, id) values ('Gas Station', 03);
-insert into main_class_stops (class, id) values ('School', 04);
-
-insert into sub_class_stops (subclass, id) values ('McDonald', 0101);
-insert into sub_class_stops (subclass, id) values ('Burger King', 0102);
-insert into sub_class_stops (subclass, id) values ('Simit Saray', 0103);
-insert into sub_class_stops (subclass, id) values ('Is Bank', 0201);
-insert into sub_class_stops (subclass, id) values ('Ak Bank', 0202);
-insert into sub_class_stops (subclass, id) values ('BP Petrol', 0301);
-insert into sub_class_stops (subclass, id) values ('Shell Petrol', 0302);
-
-insert into individual_stops (individualstops, id, x, y) values ('McDonald Sariyer', 0101001, 28.95819, 41.00749);
-insert into individual_stops (individualstops, id, x, y) values ('McDonald Sisli', 0101002, 28.95329, 41.01890);
-insert into individual_stops (individualstops, id, x, y) values ('McDonald 4 Levent', 0101003, 28.97573, 41.01495);
-insert into individual_stops (individualstops, id, x, y) values ('Is Bank ITU', 0201001, 28.95991, 41.01468);
-insert into individual_stops (individualstops, id, x, y) values ('Is Bank Eminonu', 0201002, 28.96473, 41.00584);
-insert into individual_stops (individualstops, id, x, y) values ('Is Bank Sanayi Mahallesi', 0201003, 28.96072, 41.02284);
-insert into individual_stops (individualstops, id, x, y) values ('BP Petrol Ayazaga', 0301001, 28.95356, 41.00813);
-insert into individual_stops (individualstops, id, x, y) values ('BP Petrol Gayrettepe', 0301002, 28.98561, 41.01620);
+insert into individual_stops (individualstops, id, x, y) values ('McDonald Sariyer', 100, 28.95819, 41.00749);
+insert into individual_stops (individualstops, id, x, y) values ('McDonald Sisli', 100, 28.95121, 41.01503);
+insert into individual_stops (individualstops, id, x, y) values ('McDonald 4 Levent', 100, 28.97573, 41.01495);
+insert into individual_stops (individualstops, id, x, y) values ('Is Bank ITU', 101, 28.95991, 41.01468);
+insert into individual_stops (individualstops, id, x, y) values ('Is Bank Eminonu', 101, 28.96473, 41.00584);
+insert into individual_stops (individualstops, id, x, y) values ('Is Bank Sanayi Mahallesi', 101, 28.96072, 41.02284);
+insert into individual_stops (individualstops, id, x, y) values ('BP Petrol Ayazaga', 102, 28.95356, 41.00813);
+insert into individual_stops (individualstops, id, x, y) values ('BP Petrol Gayrettepe', 102, 28.98561, 41.01620);
 
 update individual_stops set the_geom = st_setsrid(st_makepoint(x, y), 4326);
 CREATE INDEX individual_stops_gix ON individual_stops USING GIST (the_geom);
