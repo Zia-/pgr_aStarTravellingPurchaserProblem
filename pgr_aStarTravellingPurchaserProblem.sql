@@ -54,18 +54,18 @@ begin
 		-- to find the closest via point wrt to the route (which we have calculate using the pgr_aStarFromAtoB()). Therefor it's crucial --
 		execute  'with buffer as (
 			select coalesce(
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.00025) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.00050) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.001) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.002) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.004) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.008) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.02) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.04) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.08) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) where st_dwithin(the_geom, geom_route, 0.2) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1)
-			) as geom_buffer
-			from individual_stops, route)
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00025) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00050) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.001) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.002) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.004) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.008) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.02) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.04) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.08) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.2) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1)
+			) 
+			as geom_buffer)
 			insert into matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;'; 
 		i = i + 1;
