@@ -1,5 +1,5 @@
 -- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
--- Install "pgr_aStarFromAtoBviaC" (https://github.com/Zia-/pgr_aStarFromAtoBviaC) and "pgr_aStarFromAtoB" (https://github.com/Zia-/pgr_aStarFromAtoB) functions beforehand --
+-- Install "pgr_aStarFromAtoB" (https://github.com/Zia-/pgr_aStarFromAtoBviaC) function beforehand --
 -- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
 -- the individual_stops table) --
 -- DROP FUNCTION test(character varying,double precision,double precision,double precision,double precision,double precision[])
@@ -57,25 +57,37 @@ begin
 		via_id := i + 1;
 		-- In the following SQL the buffer values (i.e. 0.00025, 0.00050, 0.001 etc etc) will define the succession of the buffer increment in order --
 		-- to find the closest via point wrt to the geom_route (which we have calculated above using the pgr_aStarFromAtoB()). Therefore it's crucial --
+		-- In the following SQL we will not use <-> operator as this only kicks in if one of the geometries is a constant (not in a subquery/cte). --
+		-- e.g. 'SRID=3005;POINT(1011102 450541)'::geometry instead of a.geom. Since we will be using geom_route and the_geom columns, non of them is a constant. Hence not used. --
+		-- Additionally I have used "st_distance" instead of making subsequent buffer since it's more faster than buffer creation. --
+		-- If you are making a geometry, it will take more time. So I have tried to avoid that. Results are similar from both the approaches. Buffer code is included in the comment as follows --
+		/*
 		execute  'with buffer as (
 			select coalesce(
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00025) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00050) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.001) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.002) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.004) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.008) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.02) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.04) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.08) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1),
-			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.2) and id = '||$6[i]||' order by the_geom <-> geom_route limit 1)
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00025) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.00050) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.001) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.002) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.004) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.008) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.02) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.04) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.08) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
+			(select st_makepoint(x, y) from individual_stops, route where st_dwithin(the_geom, geom_route, 0.2) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1)
 			) 
 			as geom_buffer)
+			insert into matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
+			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;';
+		*/
+		execute  'with buffer as (
+			select st_makepoint(x, y) as geom_buffer from individual_stops, route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
+			)
 			insert into matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;'; 
 		-- i = i + 1;
 	end loop;
 	-- Calculate the TSP from the above created matrix table (from here onwards I am using the pgr_aStarFromAtoBviaC() approach) --
+	-- Better code will use pgr_aStarFromAtoBviaC() direcltly, instead of writing the same stuff again here --
 	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from
 			pgr_tsp(''select id, x, y from matrix order by id'', 1, '||ending_id||')'; 
 	-- Here declaring few variables which will be used in the For Loop, later on --
@@ -127,4 +139,13 @@ $body$
 language plpgsql volatile STRICT;
 
 -- To use this function --
--- select geom from pgr_aStarTPP_buffer_first_finding('ways', 28.97438,41.00311,28.95370,41.02163, 100, 101, 102)
+-- select geom from pgr_aStarTPP_buffer_first_finding('ways', 28.97438,41.00311,28.95370,41.02163, 101, 102, 103)
+
+
+
+
+
+
+
+
+
