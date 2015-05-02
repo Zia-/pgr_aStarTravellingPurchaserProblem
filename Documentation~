@@ -25,14 +25,7 @@ CREATE INDEX individual_stops_gix ON individual_stops USING GIST (the_geom);
 --3. In case, where there is a desired individual stops shapefile available, use the following code to feed the individual_stops table.
 
 insert into individual_stops (individualstops, id, x, y, the_geom)
-SELECT name, 101, st_x(geom), st_y(geom), geom FROM bank_shapefile_ist;
-
-insert into individual_stops (individualstops, id, x, y, the_geom)
-SELECT name, 102, st_x(geom), st_y(geom), geom FROM cafe_shapefile_ist;
-
-insert into individual_stops (individualstops, id, x, y, the_geom)
-SELECT name, 103, st_x(geom), st_y(geom), geom FROM pharmacy_shapefile_ist;
-
+SELECT name, 100, st_x(geom), st_y(geom), geom FROM bank_shapefile_ist;
 CREATE INDEX individual_stops_gix ON individual_stops USING GIST (the_geom);
 
 --4. Do this for all the individual nodes shapefiles and make a note of corresponding id values.
