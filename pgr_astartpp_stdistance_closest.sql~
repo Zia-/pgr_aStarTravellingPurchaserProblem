@@ -4,7 +4,7 @@
 -- the individual_stops table) --
 -- DROP FUNCTION test(character varying,double precision,double precision,double precision,double precision,double precision[])
 
-create or replace function pgr_aStarTPP_buffer_first_finding(IN tbl character varying, 
+create or replace function pgr_aStarTPP_stdistance_closest(IN tbl character varying, 
 IN x1 double precision,
 IN y1 double precision,
 IN x2 double precision,
@@ -79,11 +79,11 @@ begin
 			insert into matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;';
 		*/
-		execute  'with buffer as (
-			select st_makepoint(x, y) as geom_buffer from individual_stops, route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
+		execute  'with distance as (
+			select st_makepoint(x, y) as geom_distance from individual_stops, route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
 			)
 			insert into matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;'; 
+			from ways_vertices_pgr, distance ORDER BY the_geom <-> st_setsrid(geom_distance, 4326) limit 1;'; 
 	end loop;
 	-- Calculate the TSP from the above created matrix table (from here onwards I am using the pgr_aStarFromAtoBviaC() approach) --
 	-- Better code will use pgr_aStarFromAtoBviaC() direcltly, instead of writing the same stuff again here --
@@ -115,7 +115,7 @@ begin
 						|| source_var || ', ' || target_var 
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid ORDER BY seq';
-				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_buffer_first_finding() --
+				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_stdistance_closest() --
 				For rec_astar in execute sql_astar
 					Loop
 						seq := seq +1 ;
@@ -138,7 +138,7 @@ $body$
 language plpgsql volatile STRICT;
 
 -- To use this function --
--- select geom from pgr_aStarTPP_buffer_first_finding('ways', 28.97438,41.00311,28.95370,41.02163, 101, 102, 103)
+-- select geom from pgr_aStarTPP_stdistance_closest('ways', 28.97438,41.00311,28.95370,41.02163, 101, 102, 103)
 
 
 
