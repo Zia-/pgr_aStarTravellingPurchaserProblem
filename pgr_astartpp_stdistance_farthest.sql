@@ -127,6 +127,7 @@ begin
 	num := 0;*/
 	-- Delete this section above --
 	
+	create temporary table matrix_sub (id integer, node_id integer, x double precision, y double precision);
 	sql_loop1 := 'select st_x(geom_loop) as x, st_y(geom_loop) as y, id from loop_mat where id = '||$6[1]||'';
 	FOR rec_loop1 IN EXECUTE sql_loop1 
 		Loop
@@ -136,7 +137,7 @@ begin
 					sql_loop3 := 'select st_x(geom_loop) as x, st_y(geom_loop) as y, id from loop_mat where id = '||$6[3]||'';
 					FOR rec_loop3 IN EXECUTE sql_loop3
 						Loop
-							create temporary table matrix_sub (id integer, node_id integer, x double precision, y double precision);
+							
 							execute 'insert into matrix_sub (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
 									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
 							execute 'insert into matrix_sub (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
@@ -175,14 +176,14 @@ begin
 							sum_cost_again := sum_cost_again * 1000;
 							RAISE NOTICE 'Sum cost again has been calculated and is %', sum_cost_again;
 							If (sum_cost_again < sum_cost) Then
-								drop table matrix;
-								create temporary table matrix (id integer, node_id integer, x double precision, y double precision);
+								delete from matrix;
+								
 								insert into matrix (id, node_id, x, y) select id, node_id, x, y from matrix_sub;
 								sum_cost := sum_cost_again;
 								RAISE NOTICE 'Found an exception';	
 							Else
 							END IF;
-							drop table matrix_sub;
+							delete from matrix_sub;
 							num := num + 1;
 							RAISE NOTICE 'Loops done are %', num;
 						END Loop;
@@ -231,6 +232,7 @@ begin
 	RAISE NOTICE 'Everything is done';
 	drop table route;
 	drop table matrix;
+	drop table matrix_sub;
 	drop table loop_mat;
 	return;
 end;
