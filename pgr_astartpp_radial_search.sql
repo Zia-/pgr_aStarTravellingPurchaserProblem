@@ -1,3 +1,8 @@
+-- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
+-- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
+-- the individual_stops table - Consult the Documentation of this repo) --
+-- In this code, temporary tables' creation could be replaced by something better and looping could be reduced by two --
+
 create or replace function pgr_aStarTPP_radial_search(IN tbl character varying, 
 IN x1 double precision,
 IN y1 double precision,
