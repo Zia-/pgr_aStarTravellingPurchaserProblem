@@ -57,7 +57,7 @@ begin
 		-- In the following SQL the buffer values (i.e. 0.00025, 0.00050, 0.001 etc etc) will define the succession of the buffer increment in order --
 		-- to find the closest via point wrt to the geom_route (which we have calculated above using the pgr_aStarFromAtoB()). Therefore it's crucial --
 		-- In the following SQL we will not use <-> operator as this only kicks in if one of the geometries is a constant (not in a subquery/cte). --
-		-- e.g. 'SRID=3005;POINT(1011102 450541)'::geometry instead of a.geom. Since we will be using geom_route and the_geom columns, non of them is a constant. Hence not used. --
+		-- e.g. 'SRID=3005;POINT(1011102 450541)'::geometry instead of a.geom. Since we will be using geom_route and the_geom columns, none of them is a constant. Hence not used. --
 		-- Additionally I have used "st_distance" instead of making subsequent buffer since it's more faster than buffer creation. --
 		-- If you are making a geometry, it will take more time. So I have tried to avoid that. Results are similar from both the approaches. Buffer code is included in the comment as follows --
 		/*

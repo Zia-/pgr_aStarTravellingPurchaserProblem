@@ -2,7 +2,6 @@
 -- Install "pgr_aStarFromAtoB" (https://github.com/Zia-/pgr_aStarFromAtoBviaC) function beforehand --
 -- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
 -- the individual_stops table - Consult the Documentation of this repo) --
--- DROP FUNCTION test(character varying,double precision,double precision,double precision,double precision,double precision[])
 
 create or replace function pgr_aStarTPP_stdistance_closest(IN tbl character varying, 
 IN x1 double precision,

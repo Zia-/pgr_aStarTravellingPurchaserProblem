@@ -47,7 +47,6 @@ declare
 	
 begin
 	breakwhile := array_length($6,1);
-	ending_id = breakwhile + 2;
 	--create temporary table codes (sid serial, id_code integer);
 	create temporary table vertex_points (sid serial, node_id integer, x double precision, y double precision, geom_ver geometry); 
 	--create temporary table final_vertex (sid serial, id_code integer, node_id integer, x double precision, y double precision, geom_ver_final geometry);
@@ -62,7 +61,8 @@ begin
 	--sql_codes := 'select * from codes';
 	For i in 1..breakwhile
 		Loop
-			execute 'with vertex as (select the_geom as geoms from individual_stops where id = '||$6[i]||' 
+			execute 'with main_azimuth as (select st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)) as main_angle),
+			vertex as (select the_geom as geoms from individual_stops, main_azimuth where id = '||$6[i]||' and st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), the_geom) Not Between main_angle+1.5708 And main_angle+4.7124
 			order by st_distance(ST_MakeLine(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)), the_geom) limit 1)
 			insert into vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from ways_vertices_pgr, vertex 
 			ORDER BY the_geom <-> geoms limit 1';
@@ -74,44 +74,22 @@ begin
 	execute 'insert into vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from ways_vertices_pgr 
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
 	-----------
-	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from
-			pgr_tsp(''select sid as id, x, y from vertex_points order by sid'', 1, '||ending_id||')'; 
 	seq := 0;
-	source_var := -1;
-	FOR rec_tsp IN EXECUTE sql_tsp
-		LOOP
-			If (source_var = -1) Then
-				execute 'select node_id from vertex_points where sid = '||rec_tsp.id2||'' into node;
-				source_var := node.node_id;
-			Else
-				execute 'select node_id from vertex_points where sid = '||rec_tsp.id2||'' into node;
-				target_var := node.node_id;
-				-- Here we will calculate the shortest route between all the pairs of nodes using aStar(), which must be travlled in the order --
-				sql_astar := 'SELECT gid, the_geom, name, cost, source, target, 
-						ST_Reverse(the_geom) AS flip_geom FROM ' ||
-						'pgr_astar(''SELECT gid as id, source::integer, target::integer, '
-						|| 'length::double precision AS cost, '
-						|| 'x1::double precision, y1::double precision,'
-						|| 'x2::double precision, y2::double precision,'
-						|| 'reverse_cost::double precision FROM '
-						|| quote_ident(tbl) || ''', '
-						|| source_var || ', ' || target_var 
-						|| ' , true, true), '
-						|| quote_ident(tbl) || ' WHERE id2 = gid ORDER BY seq';
-				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_stdistance_closest() --
-				For rec_astar in execute sql_astar
-					Loop
-						seq := seq +1 ;
-						gid := rec_astar.gid;
-						name := rec_astar.name;
-						cost := rec_astar.cost;
-						geom := rec_astar.the_geom;
-						RETURN NEXT;
-					End Loop;
-				source_var := target_var;
-				RETURN NEXT;
-			END IF;
-		END LOOP;
+	sql_loop1 := 'select * from vertex_points';
+	For rec_loop1 in execute sql_loop1
+		Loop
+			seq := seq +1 ;
+			gid := rec_loop1.node_id;
+			name := 'Zia';
+			cost := 2633.0545864;
+			geom := rec_loop1.geom_ver;
+			RETURN NEXT;
+		End Loop;
+	Return Next;
+
+
+
+	
 	drop table vertex_points;
 	return;
 end;
