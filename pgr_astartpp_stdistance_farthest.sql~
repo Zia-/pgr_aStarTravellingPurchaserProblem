@@ -47,7 +47,6 @@ begin
 	insert into pgr_aStarTPP_stdistance_farthest_route select st_union(pgr.geom) as geom_route from pgr_astarfromatob(''|| quote_ident(tbl) || '', x1, y1, x2, y2) as pgr;
 	-- Following is the Array length which we need to know for the For Loop. --
 	-- If the Array length is 3 then it means that there are three via points and Loop has to run for three times --
-	-- to know the closest points to the "geom_route", related to all those three via points. --
 	-- ($6, 1) means that we are referring to the 6th argument and 1 means that the array is of one dimension --
 	-- First array value will correspond to $6[1] --
 	breakwhile := array_length($6,1);

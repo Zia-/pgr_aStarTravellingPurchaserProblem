@@ -1,3 +1,7 @@
+-- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
+-- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
+-- the individual_stops table - Consult the Documentation of this repo) --
+
 create or replace function pgr_aStarTPP_radial_search(IN tbl character varying, 
 IN x1 double precision,
 IN y1 double precision,
@@ -15,86 +19,77 @@ $body$
 declare
 	breakwhile integer;
 	ending_id integer;
-	via_id integer;
 	total_loop integer;
 	source_var integer;
-	num integer;
 	target_var integer;
 	sum_cost_old double precision;
 	sum_cost double precision;
-	sum_cost_again double precision;	
 	sql_tsp text;
 	sql_astar text;
-	sql_loop text;
 	sql_loop1 text;
 	sql_loop2 text;
 	sql_loop3 text;
 	rec_tsp record;
 	node record;
 	rec_astar record;	
-	sum_cost_rec record;	
 	rec_loop1 record;
 	rec_loop2 record;
 	rec_loop3 record;
 	
 begin
+	-- Following is the Array length which we need to know for the For Loop. --
+	-- If the Array length is 3 then it means that there are three via points and Loop has to run for three times --
+	-- ($6, 1) means that we are referring to the 6th argument and 1 means that the array is of one dimension --
+	-- First array value will correspond to $6[1] --
 	breakwhile := array_length($6,1);
 	ending_id = breakwhile + 2;
+	-- loop_nodes table will store the cloest A, B, and C nodes wrt to the start and end points -- 
 	create temporary table loop_nodes (id integer, x double precision, y double precision, geom geometry);
+	-- Feed the loop_nodes table with those A, B, and C nodes which are cloest to the start point --
 	For i in 1..breakwhile
 		Loop
 			execute 'insert into loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1;';
 		End Loop;
+	-- Feed the loop_nodes table with those A, B, and C nodes which are cloest to the end point --
 	For i in 1..breakwhile
 		Loop
 			execute 'insert into loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1;';
 		End Loop;
+	-- This matrix table will store the shortest route combination of A, B, and C nodes --
 	create temporary table matrix (id integer, node_id integer, x double precision, y double precision);
+	-- This matrix_sub table will store all possible combinations of A, B, and C nodes, coming from the loop_nodes table --
 	create temporary table matrix_sub (id integer, node_id integer, x double precision, y double precision);
-
-	--Delete
-	/*
-	sql_loop1 := 'select count(*) as count from loop_nodes where id = '||$6[4]||'';
-	for rec_loop1 in execute sql_loop1
-		loop
-			raise notice '104 is %', rec_loop1.count;
-		end loop;
-	*/
-	--Delete
-	
-	sql_loop1 := 'select id, x, y from loop_nodes where id = '||$6[1]||'';
+	-- This variable will hold the length value for all the possible combinations --
 	sum_cost_old := 0;
+	-- Here we will select those records which belongs to the $6[1] array value --
+	sql_loop1 := 'select id, x, y from loop_nodes where id = '||$6[1]||'';
 	FOR rec_loop1 IN EXECUTE sql_loop1 
 		Loop
+			-- Here we will select those records which belongs to the $6[2] array value --
 			sql_loop2 := 'select id, x, y from loop_nodes where id = '||$6[2]||'';
-			raise notice '1';
 			FOR rec_loop2 IN EXECUTE sql_loop2
 				Loop
+					-- Here we will select those records which belongs to the $6[3] array value --
 					sql_loop3 := 'select id, x, y from loop_nodes where id = '||$6[3]||'';
-					raise notice '2';
 					FOR rec_loop3 IN EXECUTE sql_loop3
 						Loop
-							
-							raise notice '3';
 							execute 'insert into matrix_sub (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
-									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
-							raise notice '4';
-							execute 'insert into matrix_sub (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
-									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
-							raise notice '5';
+									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
 							execute 'insert into matrix_sub (id, node_id, x, y) select 2, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop1.x||' '||rec_loop1.y||')'', 4326) limit 1;';
-							raise notice '6';
+									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop1.x||' '||rec_loop1.y||')'', 4326) limit 1;';
 							execute 'insert into matrix_sub (id, node_id, x, y) select 3, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop2.x||' '||rec_loop2.y||')'', 4326) limit 1;';
-							raise notice '7';
+									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop2.x||' '||rec_loop2.y||')'', 4326) limit 1;';
 							execute 'insert into matrix_sub (id, node_id, x, y) select 4, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-									from ways_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop3.x||' '||rec_loop3.y||')'', 4326) limit 1;';
-							raise notice '8';
+									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop3.x||' '||rec_loop3.y||')'', 4326) limit 1;';
+							execute 'insert into matrix_sub (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
+									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
+							-- Calculate the pgr_tsp for each combination of A, B, and C. --
 							sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from pgr_tsp(''select id, x, y from matrix_sub order by id'', 1, '||ending_id||')'; 
-							raise notice 'hi';
+							-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
+							-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
 							source_var := -1;
-							sum_cost := 0;		
+							sum_cost := 0;	
+							-- Calculate the length of each route and append it to the final sum_cost variable, which we will compare with the sum_cost_old value --	
 							FOR rec_tsp IN EXECUTE sql_tsp
 								LOOP
 									If (source_var = -1) Then
@@ -113,37 +108,39 @@ begin
 												|| quote_ident(tbl) || ''', '
 												|| source_var || ', ' || target_var 
 												|| ' , true, true), '
-												|| quote_ident(tbl) || ' WHERE id2 = gid' into sum_cost_rec;
-										sum_cost := sum_cost + sum_cost_rec.summation;
+												|| quote_ident(tbl) || ' WHERE id2 = gid' into node;
+										sum_cost := sum_cost + node.summation;
 									END IF;
 								END LOOP;
-							sum_cost := sum_cost * 1000;
-							RAISE NOTICE 'Sum cost again has been calculated and is %', sum_cost;
 							If (sum_cost_old = 0) Then
-								--drop table matrix;
-								
+								-- Feeding matrix table for the first time --
 								insert into matrix (id, node_id, x, y) select id, node_id, x, y from matrix_sub;
+								-- Making sum_cost_old value our sum_cost value --
 								sum_cost_old := sum_cost;
-								--sum_cost := sum_cost_again;
-								--RAISE NOTICE 'Found an exception';	
 							Else
+								-- If newly calculated sum_cost is smaller than the smallest sum_cost_old, we have calculated so far, then go into this If --
 								If (sum_cost < sum_cost_old) then
+									-- Delete all rows from matrix table --
 									delete from matrix;
+									-- Insert this new matrix combination which is even more smaller than our smallest route nodes combination --
 									insert into matrix (id, node_id, x, y) select id, node_id, x, y from matrix_sub;
+									-- Making sum_cost_old value our sum_cost value --
 									sum_cost_old := sum_cost;
 								Else
 								END IF;
 							END IF;
+							-- Empty matrix_sub table to handle another A, B, and C combination --
 							delete from matrix_sub;
 						END Loop;
 				End Loop;
 		End Loop;
-	RAISE NOTICE 'Final matrix has been obtained';
+	-- Now calculate the final pgr_tsp() for our best combination of A, B, and C matrix --
 	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from	pgr_tsp(''select id, x, y from matrix order by id'', 1, '||ending_id||')'; 
-	RAISE NOTICE 'Sum_cost %', sum_cost;
-	RAISE NOTICE 'TSP of final matrix has been calculated';
 	seq := 0;
+	-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
+	-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
 	source_var := -1;
+	-- This For Loop will give the info about the order in which the journey must be traversed from the starting to ending points through the via points --
 	FOR rec_tsp IN EXECUTE sql_tsp
 		LOOP
 			If (source_var = -1) Then
@@ -178,7 +175,7 @@ begin
 				RETURN NEXT;
 			END IF;
 		END LOOP;	
-	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the matrix table or route table already exists --
+	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the matrix, loops_nodes or matrix_sub table already exists --
 	RAISE NOTICE 'Everything is done';
 	drop table loop_nodes;
 	drop table matrix;

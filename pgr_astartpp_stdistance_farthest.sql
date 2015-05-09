@@ -47,7 +47,6 @@ begin
 	insert into pgr_aStarTPP_stdistance_farthest_route select st_union(pgr.geom) as geom_route from pgr_astarfromatob(''|| quote_ident(tbl) || '', x1, y1, x2, y2) as pgr;
 	-- Following is the Array length which we need to know for the For Loop. --
 	-- If the Array length is 3 then it means that there are three via points and Loop has to run for three times --
-	-- to know the closest points to the "geom_route", related to all those three via points. --
 	-- ($6, 1) means that we are referring to the 6th argument and 1 means that the array is of one dimension --
 	-- First array value will correspond to $6[1] --
 	breakwhile := array_length($6,1);
@@ -177,6 +176,8 @@ begin
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
 							-- Calculate the pgr_tsp for each combination of A, B, and C. --
 							sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from pgr_tsp(''select id, x, y from pgr_aStarTPP_stdistance_farthest_matrix_sub order by id'', 1, '||ending_id||')'; 
+							-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
+							-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
 							source_var := -1;
 							sum_cost_again := 0;
 							-- Calculate the length of each route and append it to the final sum_cost_again variable, which we will compare with the sum_cost value --		
