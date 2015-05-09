@@ -1,6 +1,6 @@
 -- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
 -- Install "pgr_aStarFromAtoB" (https://github.com/Zia-/pgr_aStarFromAtoBviaC) function beforehand --
--- The arguments are the table name, the starting and ending points coord and the via points' ids (which we have defined in
+-- The arguments are the table name, the starting and ending points' coord and the via points' ids (which we have defined in
 -- the individual_stops table - Consult the Documentation of this repo) --
 
 create or replace function pgr_aStarTPP_stdistance_closest(IN tbl character varying, 
@@ -79,10 +79,10 @@ begin
 			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;';
 		*/
 		execute  'with distance as (
-			select st_makepoint(x, y) as geom_distance from individual_stops, pgr_aStarTPP_stdistance_closest_route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
+			select the_geom as geom_distance from individual_stops, pgr_aStarTPP_stdistance_closest_route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
 			)
 			insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-			from '|| quote_ident(tbl) || '_vertices_pgr, distance ORDER BY the_geom <-> st_setsrid(geom_distance, 4326) limit 1;'; 
+			from '|| quote_ident(tbl) || '_vertices_pgr, distance ORDER BY the_geom <-> geom_distance limit 1;'; 
 	end loop;
 	-- Insert the ending point's details into this pgr_aStarTPP_stdistance_closest_matrix table --
 	execute 'insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision from '|| quote_ident(tbl) || '_vertices_pgr 
