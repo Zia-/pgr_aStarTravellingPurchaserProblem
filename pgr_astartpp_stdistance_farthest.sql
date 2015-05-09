@@ -1,8 +1,7 @@
 -- This code is the latest one. Although it's calculating closest A, B, and C two times but still faster. --
-
 -- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
 -- Install "pgr_aStarFromAtoB" (https://github.com/Zia-/pgr_aStarFromAtoBviaC) function beforehand --
--- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
+-- The arguments are the table name, the starting and ending points coord and the via points' ids (which we have defined in
 -- the individual_stops table - Consult the Documentation of this repo) --
 -- In this code, temporary tables' creation could be replaced by something better and looping could be reduced by two --
 
