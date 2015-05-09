@@ -42,7 +42,7 @@ begin
 	-- Create another temporary table which will hold the coordinates of the via points --
 	create temporary table pgr_aStarTPP_stdistance_closest_matrix (id integer, node_id integer, x double precision, y double precision);
 	-- First we need to insert the starting point's details into this pgr_aStarTPP_stdistance_closest_matrix table, then using the For Loop --
-	-- we will feed the via points. Later on, we will insert the ending point's detaisla and will use this pgr_aStarTPP_stdistance_closest_matrix table for our pgr_tsp(). --
+	-- we will feed the via points. Later on, we will insert the ending point's detaisls and will use this pgr_aStarTPP_stdistance_closest_matrix table for our pgr_tsp(). --
 	-- We are defining this ending_id coz coordinates must be entered into the pgr_aStarTPP_stdistance_closest_matrix table (for pgr_tsp) in the order: --
 	-- start, via, via, etc etc, end --
 	ending_id = breakwhile + 2;

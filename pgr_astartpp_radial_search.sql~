@@ -43,48 +43,48 @@ begin
 	-- First array value will correspond to $6[1] --
 	breakwhile := array_length($6,1);
 	ending_id = breakwhile + 2;
-	-- loop_nodes table will store the cloest A, B, and C nodes wrt to the start and end points -- 
-	create temporary table loop_nodes (id integer, x double precision, y double precision, geom geometry);
-	-- Feed the loop_nodes table with those A, B, and C nodes which are cloest to the start point --
+	-- pgr_aStarTPP_radial_search_loop_nodes table will store the cloest A, B, and C nodes wrt to the start and end points -- 
+	create temporary table pgr_aStarTPP_radial_search_loop_nodes (id integer, x double precision, y double precision, geom geometry);
+	-- Feed the pgr_aStarTPP_radial_search_loop_nodes table with those A, B, and C nodes which are cloest to the start point --
 	For i in 1..breakwhile
 		Loop
-			execute 'insert into loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1;';
+			execute 'insert into pgr_aStarTPP_radial_search_loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1;';
 		End Loop;
-	-- Feed the loop_nodes table with those A, B, and C nodes which are cloest to the end point --
+	-- Feed the pgr_aStarTPP_radial_search_loop_nodes table with those A, B, and C nodes which are cloest to the end point --
 	For i in 1..breakwhile
 		Loop
-			execute 'insert into loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1;';
+			execute 'insert into pgr_aStarTPP_radial_search_loop_nodes (id, x, y, geom) select id, x, y, the_geom from individual_stops where id = '||$6[i]||' order by the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1;';
 		End Loop;
-	-- This matrix table will store the shortest route combination of A, B, and C nodes --
-	create temporary table matrix (id integer, node_id integer, x double precision, y double precision);
-	-- This matrix_sub table will store all possible combinations of A, B, and C nodes, coming from the loop_nodes table --
-	create temporary table matrix_sub (id integer, node_id integer, x double precision, y double precision);
+	-- This pgr_aStarTPP_radial_search_matrix table will store the shortest route combination of A, B, and C nodes --
+	create temporary table pgr_aStarTPP_radial_search_matrix (id integer, node_id integer, x double precision, y double precision);
+	-- This pgr_aStarTPP_radial_search_matrix_sub table will store all possible combinations of A, B, and C nodes, coming from the pgr_aStarTPP_radial_search_loop_nodes table --
+	create temporary table pgr_aStarTPP_radial_search_matrix_sub (id integer, node_id integer, x double precision, y double precision);
 	-- This variable will hold the length value for all the possible combinations --
 	sum_cost_old := 0;
 	-- Here we will select those records which belongs to the $6[1] array value --
-	sql_loop1 := 'select id, x, y from loop_nodes where id = '||$6[1]||'';
+	sql_loop1 := 'select id, x, y from pgr_aStarTPP_radial_search_loop_nodes where id = '||$6[1]||'';
 	FOR rec_loop1 IN EXECUTE sql_loop1 
 		Loop
 			-- Here we will select those records which belongs to the $6[2] array value --
-			sql_loop2 := 'select id, x, y from loop_nodes where id = '||$6[2]||'';
+			sql_loop2 := 'select id, x, y from pgr_aStarTPP_radial_search_loop_nodes where id = '||$6[2]||'';
 			FOR rec_loop2 IN EXECUTE sql_loop2
 				Loop
 					-- Here we will select those records which belongs to the $6[3] array value --
-					sql_loop3 := 'select id, x, y from loop_nodes where id = '||$6[3]||'';
+					sql_loop3 := 'select id, x, y from pgr_aStarTPP_radial_search_loop_nodes where id = '||$6[3]||'';
 					FOR rec_loop3 IN EXECUTE sql_loop3
 						Loop
-							execute 'insert into matrix_sub (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
+							execute 'insert into pgr_aStarTPP_radial_search_matrix_sub (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
-							execute 'insert into matrix_sub (id, node_id, x, y) select 2, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
+							execute 'insert into pgr_aStarTPP_radial_search_matrix_sub (id, node_id, x, y) select 2, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop1.x||' '||rec_loop1.y||')'', 4326) limit 1;';
-							execute 'insert into matrix_sub (id, node_id, x, y) select 3, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
+							execute 'insert into pgr_aStarTPP_radial_search_matrix_sub (id, node_id, x, y) select 3, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop2.x||' '||rec_loop2.y||')'', 4326) limit 1;';
-							execute 'insert into matrix_sub (id, node_id, x, y) select 4, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
+							execute 'insert into pgr_aStarTPP_radial_search_matrix_sub (id, node_id, x, y) select 4, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||rec_loop3.x||' '||rec_loop3.y||')'', 4326) limit 1;';
-							execute 'insert into matrix_sub (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
+							execute 'insert into pgr_aStarTPP_radial_search_matrix_sub (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision 
 									from '|| quote_ident(tbl) || '_vertices_pgr ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
 							-- Calculate the pgr_tsp for each combination of A, B, and C. --
-							sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from pgr_tsp(''select id, x, y from matrix_sub order by id'', 1, '||ending_id||')'; 
+							sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from pgr_tsp(''select id, x, y from pgr_aStarTPP_radial_search_matrix_sub order by id'', 1, '||ending_id||')'; 
 							-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
 							-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
 							source_var := -1;
@@ -93,10 +93,10 @@ begin
 							FOR rec_tsp IN EXECUTE sql_tsp
 								LOOP
 									If (source_var = -1) Then
-										execute 'select node_id from matrix_sub where id = '||rec_tsp.id2||'' into node;
+										execute 'select node_id from pgr_aStarTPP_radial_search_matrix_sub where id = '||rec_tsp.id2||'' into node;
 										source_var := node.node_id;
 									Else
-										execute 'select node_id from matrix_sub where id = '||rec_tsp.id2||'' into node;
+										execute 'select node_id from pgr_aStarTPP_radial_search_matrix_sub where id = '||rec_tsp.id2||'' into node;
 										target_var := node.node_id;
 										execute 'SELECT sum(cost) as summation
 												FROM ' ||
@@ -113,29 +113,30 @@ begin
 									END IF;
 								END LOOP;
 							If (sum_cost_old = 0) Then
-								-- Feeding matrix table for the first time --
-								insert into matrix (id, node_id, x, y) select id, node_id, x, y from matrix_sub;
+								-- Feeding pgr_aStarTPP_radial_search_matrix table for the first time --
+								insert into pgr_aStarTPP_radial_search_matrix (id, node_id, x, y) select id, node_id, x, y from pgr_aStarTPP_radial_search_matrix_sub;
 								-- Making sum_cost_old value our sum_cost value --
 								sum_cost_old := sum_cost;
 							Else
 								-- If newly calculated sum_cost is smaller than the smallest sum_cost_old, we have calculated so far, then go into this If --
 								If (sum_cost < sum_cost_old) then
-									-- Delete all rows from matrix table --
-									delete from matrix;
-									-- Insert this new matrix combination which is even more smaller than our smallest route nodes combination --
-									insert into matrix (id, node_id, x, y) select id, node_id, x, y from matrix_sub;
+									-- Delete all rows from pgr_aStarTPP_radial_search_matrix table --
+									delete from pgr_aStarTPP_radial_search_matrix;
+									-- Insert this new pgr_aStarTPP_radial_search_matrix combination which is even more smaller than our smallest route nodes combination --
+									insert into pgr_aStarTPP_radial_search_matrix (id, node_id, x, y) select id, node_id, x, y from pgr_aStarTPP_radial_search_matrix_sub;
 									-- Making sum_cost_old value our sum_cost value --
 									sum_cost_old := sum_cost;
 								Else
 								END IF;
 							END IF;
-							-- Empty matrix_sub table to handle another A, B, and C combination --
-							delete from matrix_sub;
+							-- Empty pgr_aStarTPP_radial_search_matrix_sub table to handle another A, B, and C combination --
+							delete from pgr_aStarTPP_radial_search_matrix_sub;
 						END Loop;
 				End Loop;
 		End Loop;
 	-- Now calculate the final pgr_tsp() for our best combination of A, B, and C matrix --
-	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from	pgr_tsp(''select id, x, y from matrix order by id'', 1, '||ending_id||')'; 
+	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from	pgr_tsp(''select id, x, y from pgr_aStarTPP_radial_search_matrix order by id'', 1, '||ending_id||')';
+	-- Here declaring few variables which will be used in the For Loop later on -- 
 	seq := 0;
 	-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
 	-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
@@ -144,10 +145,10 @@ begin
 	FOR rec_tsp IN EXECUTE sql_tsp
 		LOOP
 			If (source_var = -1) Then
-				execute 'select node_id from matrix where id = '||rec_tsp.id2||'' into node;
+				execute 'select node_id from pgr_aStarTPP_radial_search_matrix where id = '||rec_tsp.id2||'' into node;
 				source_var := node.node_id;
 			Else
-				execute 'select node_id from matrix where id = '||rec_tsp.id2||'' into node;
+				execute 'select node_id from pgr_aStarTPP_radial_search_matrix where id = '||rec_tsp.id2||'' into node;
 				target_var := node.node_id;
 				-- Here we will calculate the shortest route between all the pairs of nodes using aStar(), which must be travlled in the order --
 				sql_astar := 'SELECT gid, the_geom, name, cost, source, target, 
@@ -161,7 +162,7 @@ begin
 						|| source_var || ', ' || target_var 
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid ORDER BY seq';
-				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_stdistance_closest() --
+				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_radial_search() --
 				For rec_astar in execute sql_astar
 					Loop
 						seq := seq +1 ;
@@ -175,11 +176,10 @@ begin
 				RETURN NEXT;
 			END IF;
 		END LOOP;	
-	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the matrix, loops_nodes or matrix_sub table already exists --
-	RAISE NOTICE 'Everything is done';
-	drop table loop_nodes;
-	drop table matrix;
-	drop table matrix_sub;
+	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_radial_search_matrix, pgr_aStarTPP_radial_search_loop_nodes or pgr_aStarTPP_radial_search_matrix_sub table already exists --
+	drop table pgr_aStarTPP_radial_search_loop_nodes;
+	drop table pgr_aStarTPP_radial_search_matrix;
+	drop table pgr_aStarTPP_radial_search_matrix_sub;
 	return;
 end;
 $body$

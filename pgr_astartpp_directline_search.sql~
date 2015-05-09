@@ -20,71 +20,51 @@ $body$
 declare
 	breakwhile integer;
 	ending_id integer;
-	via_id integer;
-	total_loop integer;
 	source_var integer;
-	num integer;
 	target_var integer;
-	sum_cost_old double precision;
-	sum_cost double precision;
-	sum_cost_again double precision;	
 	sql_tsp text;
 	sql_astar text;
-	sql_loop text;
-	sql_loop1 text;
-	sql_loop2 text;
-	sql_loop3 text;
-	sql_codes text;
 	rec_tsp record;
 	node record;
 	rec_astar record;	
-	sum_cost_rec record;
-	rec_loop record;	
-	rec_loop1 record;
-	rec_loop2 record;
-	rec_loop3 record;
-	rec_codes record;
-	
 begin
+	-- Following is the Array length which we need to know for the For Loop. --
+	-- If the Array length is 3 then it means that there are three via points and Loop has to run for three times --
+	-- ($6, 1) means that we are referring to the 6th argument and 1 means that the array is of one dimension --
+	-- First array value will correspond to $6[1] --
 	breakwhile := array_length($6,1);
 	ending_id = breakwhile + 2;
-	--create temporary table codes (sid serial, id_code integer);
-	create temporary table vertex_points (sid serial, node_id integer, x double precision, y double precision, geom_ver geometry); 
-	--create temporary table final_vertex (sid serial, id_code integer, node_id integer, x double precision, y double precision, geom_ver_final geometry);
-	--For i in 1..breakwhile
-	--	Loop
-	--		execute 'insert into codes (id_code) values ('||$6[i]||')';
-	--	End Loop;
-	------------ Feed the starting points ways_vertex_pgr point ----------
-	execute 'insert into vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from ways_vertices_pgr 
+	-- This table will contain the final matrix which we will be using in pgr_tsp().
+	create temporary table pgr_aStarTPP_directline_search_vertex_points (sid serial, node_id integer, x double precision, y double precision, geom_ver geometry); 
+	-- Feed the starting point of ways_vertex_pgr point --
+	execute 'insert into pgr_aStarTPP_directline_search_vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr 
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
-	-----------
-	--sql_codes := 'select * from codes';
+	-- Now rum the For loop to find the closest A, B, and C points to the direct line joining start-end point --
 	For i in 1..breakwhile
 		Loop
 			execute 'with vertex as (select the_geom as geoms from individual_stops where id = '||$6[i]||' 
 			order by st_distance(ST_MakeLine(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)), the_geom) limit 1)
-			insert into vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from ways_vertices_pgr, vertex 
+			insert into pgr_aStarTPP_directline_search_vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr, vertex 
 			ORDER BY the_geom <-> geoms limit 1';
 		End Loop;
-	--execute 'insert into final_vertex (id_code, node_id, x, y, geom_ver_final) select id_code, node_id, x, y, geom_ver from vertex_points order by
-	--	st_distance(ST_MakeLine(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)), geom_ver) limit 1';
-	--execute 'delete from vertex_points';
-	-----------
-	execute 'insert into vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from ways_vertices_pgr 
+	-- Feed the ending point of ways_vertex_pgr point --
+	execute 'insert into pgr_aStarTPP_directline_search_vertex_points (node_id, x, y, geom_ver) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr 
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
-	-----------
+	-- Now calculate the final pgr_tsp() for this combination of A, B, and C matrix -- 
 	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from
-			pgr_tsp(''select sid as id, x, y from vertex_points order by sid'', 1, '||ending_id||')'; 
+			pgr_tsp(''select sid as id, x, y from pgr_aStarTPP_directline_search_vertex_points order by sid'', 1, '||ending_id||')'; 
 	seq := 0;
+	-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
+	-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
 	source_var := -1;
+	-- This For Loop will give the info about the order in which the journey must be traversed from the starting to ending points through the via points --
 	FOR rec_tsp IN EXECUTE sql_tsp
 		LOOP
 			If (source_var = -1) Then
-				execute 'select node_id from vertex_points where sid = '||rec_tsp.id2||'' into node;
+				execute 'select node_id from pgr_aStarTPP_directline_search_vertex_points where sid = '||rec_tsp.id2||'' into node;
 				source_var := node.node_id;
 			Else
-				execute 'select node_id from vertex_points where sid = '||rec_tsp.id2||'' into node;
+				execute 'select node_id from pgr_aStarTPP_directline_search_vertex_points where sid = '||rec_tsp.id2||'' into node;
 				target_var := node.node_id;
 				-- Here we will calculate the shortest route between all the pairs of nodes using aStar(), which must be travlled in the order --
 				sql_astar := 'SELECT gid, the_geom, name, cost, source, target, 
@@ -98,7 +78,7 @@ begin
 						|| source_var || ', ' || target_var 
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid ORDER BY seq';
-				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_stdistance_closest() --
+				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_directline_search() --
 				For rec_astar in execute sql_astar
 					Loop
 						seq := seq +1 ;
@@ -112,7 +92,8 @@ begin
 				RETURN NEXT;
 			END IF;
 		END LOOP;
-	drop table vertex_points;
+	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_directline_search_vertex_points table already exists --
+	drop table pgr_aStarTPP_directline_search_vertex_points;
 	return;
 end;
 $body$
