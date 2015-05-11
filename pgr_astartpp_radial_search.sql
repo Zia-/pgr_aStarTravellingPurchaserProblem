@@ -110,6 +110,7 @@ begin
 												|| ' , true, true), '
 												|| quote_ident(tbl) || ' WHERE id2 = gid' into node;
 										sum_cost := sum_cost + node.summation;
+										source_var := target_var;
 									END IF;
 								END LOOP;
 							If (sum_cost_old = 0) Then

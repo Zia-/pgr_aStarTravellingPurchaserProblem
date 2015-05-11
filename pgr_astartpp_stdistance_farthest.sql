@@ -103,10 +103,12 @@ begin
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid' into node;
 				sum_cost := sum_cost + node.summation;
+				source_var := target_var;
 			END IF;
 		END LOOP;
 	-- Multiplication with 1000 will make the length in meters, which could be used for comparision for the results coming from the st_distance(), where we will be using WGS84 UTM35N zone --
 	sum_cost := sum_cost * 1000;
+	Riase notice 'sum     cost        %', sum_cost;
 	-- This pgr_aStarTPP_stdistance_farthest_loop_mat table will hole all those A, B, and C via points whose summation(distance) from start and end is smaller than the above calculated closest A, B, and C route i.e. sum_cost -- 
 	create temporary table pgr_aStarTPP_stdistance_farthest_loop_mat (geom_loop geometry, id integer);
 	For i in 1..breakwhile Loop
@@ -201,11 +203,13 @@ begin
 												|| ' , true, true), '
 												|| quote_ident(tbl) || ' WHERE id2 = gid' into node;
 										sum_cost_again := sum_cost_again + node.summation;
+										source_var := target_var;
 									END IF;
 								END LOOP;
 							-- We are multiplying 1000 with sum_Cost_again to make it comparable with sum_cost --
 							sum_cost_again := sum_cost_again * 1000;
 							-- If the following If is true then it means that we have found a new A, B, and C combination whose route is smaller than our closest A, B, and C route --
+							Raise Notice 'sum_cost_again %', sum_cost_again;
 							If (sum_cost_again < sum_cost) Then
 								-- Emptying pgr_aStarTPP_stdistance_farthest_matrix table --
 								delete from pgr_aStarTPP_stdistance_farthest_matrix;
@@ -213,6 +217,7 @@ begin
 								insert into pgr_aStarTPP_stdistance_farthest_matrix (id, node_id, x, y) select id, node_id, x, y from pgr_aStarTPP_stdistance_farthest_matrix_sub;
 								-- Assigning our new sum_cost value using sum_cost_again variable's value --
 								sum_cost := sum_cost_again;
+								Raise Notice 'Exception Found';
 							Else
 							END IF;
 							delete from pgr_aStarTPP_stdistance_farthest_matrix_sub;
