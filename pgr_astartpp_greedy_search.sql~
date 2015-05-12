@@ -106,7 +106,6 @@ begin
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
 	-- Now we have all the points --
 	sql_codes := 'select * from pgr_aStarTPP_greedy_search_final_vertex';
-	-- Here declaring few variables which will be used in the For Loop later on --
 	seq := 0;
 	-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
 	-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --

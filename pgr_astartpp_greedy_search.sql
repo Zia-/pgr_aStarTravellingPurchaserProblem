@@ -142,7 +142,6 @@ begin
 						RETURN NEXT;
 					End Loop;
 				source_var := target_var;
-				RETURN NEXT;
 			END IF;
 		End Loop;
 	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_greedy_search_vertex_points, pgr_aStarTPP_greedy_search_final_vertex or pgr_aStarTPP_greedy_search_codes table already exists --	

@@ -89,7 +89,6 @@ begin
 						RETURN NEXT;
 					End Loop;
 				source_var := target_var;
-				RETURN NEXT;
 			END IF;
 		END LOOP;
 	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_directline_search_vertex_points table already exists --

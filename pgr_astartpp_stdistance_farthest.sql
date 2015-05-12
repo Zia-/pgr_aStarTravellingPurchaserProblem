@@ -103,12 +103,13 @@ begin
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid' into node;
 				sum_cost := sum_cost + node.summation;
+				raise notice 'sub sum cost %', node.summation;
 				source_var := target_var;
 			END IF;
 		END LOOP;
 	-- Multiplication with 1000 will make the length in meters, which could be used for comparision for the results coming from the st_distance(), where we will be using WGS84 UTM35N zone --
 	sum_cost := sum_cost * 1000;
-	Riase notice 'sum     cost        %', sum_cost;
+	Raise notice 'sum     cost        %', sum_cost;
 	-- This pgr_aStarTPP_stdistance_farthest_loop_mat table will hole all those A, B, and C via points whose summation(distance) from start and end is smaller than the above calculated closest A, B, and C route i.e. sum_cost -- 
 	create temporary table pgr_aStarTPP_stdistance_farthest_loop_mat (geom_loop geometry, id integer);
 	For i in 1..breakwhile Loop
@@ -264,7 +265,6 @@ begin
 						RETURN NEXT;
 					End Loop;
 				source_var := target_var;
-				RETURN NEXT;
 			END IF;
 		END LOOP;	
 	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_stdistance_farthest_matrix table, pgr_aStarTPP_stdistance_farthest_route, pgr_aStarTPP_stdistance_farthest_matrix_sub or pgr_aStarTPP_stdistance_farthest_loop_mat table already exists --
