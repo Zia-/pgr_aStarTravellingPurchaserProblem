@@ -124,7 +124,6 @@ begin
 						name := rec_astar.name;
 						cost := rec_astar.cost;
 						geom := rec_astar.the_geom;
-						raise notice 'cost indi %', rec_astar.cost;
 						RETURN NEXT;
 					End Loop;
 				source_var := target_var;
