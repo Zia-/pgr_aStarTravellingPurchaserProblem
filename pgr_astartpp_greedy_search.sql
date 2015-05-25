@@ -1,7 +1,7 @@
 -- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
 -- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
 -- the individual_stops table - Consult the Documentation of this repo) --
--- In this code, temporary tables' creation could be replaced by something better and looping could be reduced by two --
+-- In this code, temporary tables' creation could be replaced by something better --
 
 create or replace function pgr_aStarTPP_greedy_search(IN tbl character varying, 
 IN x1 double precision,
@@ -49,6 +49,44 @@ begin
 	-- Feed the starting point of ways_vertex_pgr point --
 	execute 'insert into pgr_aStarTPP_greedy_search_final_vertex (node_id, x, y, geom_ver_final) select id, st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr 
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
+	-- First loop --
+	sql_codes := 'select * from pgr_aStarTPP_greedy_search_codes';
+	For rec_codes in execute sql_codes
+		Loop
+			execute 'with main_azimuth as (select st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)) as main_angle),
+				vertex_front as (select the_geom as geoms from individual_stops, main_azimuth where id = '||rec_codes.id_code||' and 
+				st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), the_geom) Not Between main_angle+1.5708 And main_angle+4.7124
+				order by the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1)
+				insert into pgr_aStarTPP_greedy_search_vertex_points (id_code, node_id, x, y, geom_ver) select '||rec_codes.id_code||', id, 
+				st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr, vertex_front 
+				ORDER BY the_geom <-> geoms limit 1';
+			execute 'with main_azimuth as (select st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)) as main_angle),
+				vertex_back as (select the_geom as geoms from individual_stops, main_azimuth where id = '||rec_codes.id_code||' and 
+				st_azimuth(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), the_geom) Between main_angle+1.5708 And main_angle+4.7124
+				order by the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1)
+				insert into pgr_aStarTPP_greedy_search_vertex_points (id_code, node_id, x, y, geom_ver) select '||rec_codes.id_code||', id, 
+				st_x(the_geom)::double precision, st_y(the_geom)::double precision, the_geom from '|| quote_ident(tbl) || '_vertices_pgr, vertex_back 
+				ORDER BY the_geom <-> geoms limit 1';
+		End Loop;
+	-- Calcualte the distance and order by that.
+	execute 'insert into pgr_aStarTPP_greedy_search_final_vertex (id_code, node_id, x, y, geom_ver_final) select id_code, node_id, x, y, geom_ver from pgr_aStarTPP_greedy_search_vertex_points order by
+		st_distance(ST_MakeLine(st_setsrid(ST_MakePoint('||x1||','||y1||'),4326), st_setsrid(ST_MakePoint('||x2||','||y2||'),4326)), geom_ver) limit 1';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	-- First loop --
 	sql_codes := 'select * from pgr_aStarTPP_greedy_search_codes';
 	For rec_codes in execute sql_codes
