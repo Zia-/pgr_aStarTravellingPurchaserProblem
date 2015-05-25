@@ -36,7 +36,7 @@ begin
 	breakwhile := array_length($6,1);
 	-- This table will contain all the codes (like 101, 102) which the user has supplied --
 	create temporary table pgr_aStarTPP_greedy_search_codes (sid serial, id_code integer);
-	-- This table will contain the closest A, B, or C points wrt the line joining the starting and ending point. --
+	-- This table will contain the closest A, B, or C points wrt the starting point. --
 	-- Note that this starting and ending point will change with each passing loop and so are the via nodes (in the begining A, B, C; then may be A, C; then may be A.) --
 	create temporary table pgr_aStarTPP_greedy_search_vertex_points (sid serial, id_code integer, node_id integer, x double precision, y double precision, geom_ver geometry); 
 	-- This table will contain the final matrix which we will be using for astar routing. Note that we will not use pgr_tsp() atall anywhere, as this is a greedy approach. --
@@ -93,7 +93,7 @@ begin
 				ORDER BY the_geom <-> geoms limit 1)';
 		End Loop;
 	execute 'insert into pgr_aStarTPP_greedy_search_final_vertex (id_code, node_id, x, y, geom_ver_final) select id_code, node_id, x, y, geom_ver from pgr_aStarTPP_greedy_search_vertex_points order by
-		st_distance(ST_GeometryFromText(''Point('||rec_loop.x||','||rec_loop.y||')'', 4326), geom_ver)+st_distance(ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326), geom_ver) limit 1';
+		st_distance(ST_GeometryFromText(''Point('||rec_loop.x||' '||rec_loop.y||')'', 4326), geom_ver)+st_distance(ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326), geom_ver) limit 1';
 	-- We have to empty that pgr_aStarTPP_greedy_search_vertex_points temporary table --
 	execute 'delete from pgr_aStarTPP_greedy_search_vertex_points';
 	-- Now we will remove that id_code (like 101, 102) from the pgr_aStarTPP_greedy_search_codes table which has been considered during greedy approach. --
@@ -119,7 +119,7 @@ begin
 				ORDER BY the_geom <-> geoms limit 1)';
 		End Loop;
 	execute 'insert into pgr_aStarTPP_greedy_search_final_vertex (id_code, node_id, x, y, geom_ver_final) select id_code, node_id, x, y, geom_ver from pgr_aStarTPP_greedy_search_vertex_points order by
-		st_distance(ST_GeometryFromText(''Point('||rec_loop.x||','||rec_loop.y||')'', 4326), geom_ver)+st_distance(ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326), geom_ver) limit 1';
+		st_distance(ST_GeometryFromText(''Point('||rec_loop.x||' '||rec_loop.y||')'', 4326), geom_ver)+st_distance(ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326), geom_ver) limit 1';
 	-- We have to empty that pgr_aStarTPP_greedy_search_vertex_points temporary table --
 	execute 'delete from pgr_aStarTPP_greedy_search_vertex_points';
 	-- Feed the Ending point of ways_vertex_pgr point --

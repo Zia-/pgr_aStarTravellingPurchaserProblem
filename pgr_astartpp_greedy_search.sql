@@ -36,7 +36,7 @@ begin
 	breakwhile := array_length($6,1);
 	-- This table will contain all the codes (like 101, 102) which the user has supplied --
 	create temporary table pgr_aStarTPP_greedy_search_codes (sid serial, id_code integer);
-	-- This table will contain the closest A, B, or C points wrt the line joining the starting and ending point. --
+	-- This table will contain the closest A, B, or C points wrt the starting point. --
 	-- Note that this starting and ending point will change with each passing loop and so are the via nodes (in the begining A, B, C; then may be A, C; then may be A.) --
 	create temporary table pgr_aStarTPP_greedy_search_vertex_points (sid serial, id_code integer, node_id integer, x double precision, y double precision, geom_ver geometry); 
 	-- This table will contain the final matrix which we will be using for astar routing. Note that we will not use pgr_tsp() atall anywhere, as this is a greedy approach. --
