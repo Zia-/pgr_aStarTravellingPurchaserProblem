@@ -3,14 +3,14 @@
 -- The arguments are the table name, the starting and ending points' coord and the via points' ids (which we have defined in
 -- the individual_stops table - Consult the Documentation of this repo) --
 
-create or replace function pgr_aStarTPP_stdistance_closest(IN tbl character varying, 
+create or replace function pgr_aStarTPP_stdistance_closest_1_via(IN tbl character varying,
 IN x1 double precision,
 IN y1 double precision,
 IN x2 double precision,
 IN y2 double precision,
 variadic double precision[],
-OUT seq integer, 
-OUT gid integer, 
+OUT seq integer,
+OUT gid integer,
 OUT name text,
 OUT cost double precision,
 OUT geom geometry
@@ -25,7 +25,7 @@ declare
 	source_var integer;
 	rec_tsp record;
 	node record;
-	target_var integer;	
+	target_var integer;
 	sql_astar text;
 	rec_astar record;
 begin
@@ -46,7 +46,7 @@ begin
 	-- We are defining this ending_id coz coordinates must be entered into the pgr_aStarTPP_stdistance_closest_matrix table (for pgr_tsp) in the order: --
 	-- start, via, via, etc etc, end --
 	ending_id = breakwhile + 2;
-	execute 'insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision from '|| quote_ident(tbl) || '_vertices_pgr 
+	execute 'insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select 1, id, st_x(the_geom)::double precision, st_y(the_geom)::double precision from '|| quote_ident(tbl) || '_vertices_pgr
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x1||' '||y1||')'', 4326) limit 1';
 	-- In the following For Loop, the increment is 1 and the i value is 1,2,3,etc, not 0,1,2,3,etc --
 	For i in 1..breakwhile Loop
@@ -73,24 +73,23 @@ begin
 			(select st_makepoint(x, y) from individual_stops, pgr_aStarTPP_stdistance_closest_route where st_dwithin(the_geom, geom_route, 0.04) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
 			(select st_makepoint(x, y) from individual_stops, pgr_aStarTPP_stdistance_closest_route where st_dwithin(the_geom, geom_route, 0.08) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1),
 			(select st_makepoint(x, y) from individual_stops, pgr_aStarTPP_stdistance_closest_route where st_dwithin(the_geom, geom_route, 0.2) and id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1)
-			) 
+			)
 			as geom_buffer)
 			insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
 			from ways_vertices_pgr, buffer ORDER BY the_geom <-> st_setsrid(geom_buffer, 4326) limit 1;';
 		*/
 		execute  'with distance as (
-			select the_geom as geom_distance from individual_stops, pgr_aStarTPP_stdistance_closest_route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1 
+			select the_geom as geom_distance from individual_stops, pgr_aStarTPP_stdistance_closest_route where id = '||$6[i]||' order by st_distance(geom_route, the_geom) limit 1
 			)
 			insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||via_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision
-			from '|| quote_ident(tbl) || '_vertices_pgr, distance ORDER BY the_geom <-> geom_distance limit 1;'; 
+			from '|| quote_ident(tbl) || '_vertices_pgr, distance ORDER BY the_geom <-> geom_distance limit 1;';
 	end loop;
 	-- Insert the ending point's details into this pgr_aStarTPP_stdistance_closest_matrix table --
-	execute 'insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision from '|| quote_ident(tbl) || '_vertices_pgr 
+	execute 'insert into pgr_aStarTPP_stdistance_closest_matrix (id, node_id, x, y) select '||ending_id||', id, st_x(the_geom)::double precision, st_y(the_geom)::double precision from '|| quote_ident(tbl) || '_vertices_pgr
 		ORDER BY the_geom <-> ST_GeometryFromText(''Point('||x2||' '||y2||')'', 4326) limit 1';
 	-- Calculate the TSP from the above created pgr_aStarTPP_stdistance_closest_matrix table (from here onwards I am using the pgr_aStarFromAtoBviaC() approach (https://github.com/Zia-/pgr_aStarFromAtoBviaC)) --
 	-- Better code structure will use pgr_aStarFromAtoBviaC() directly, instead of writing the same stuff again here --
-	sql_tsp := 'select seq, id1, id2, round(cost::numeric, 5) AS cost from
-			pgr_tsp(''select id, x, y from pgr_aStarTPP_stdistance_closest_matrix order by id'', 1, '||ending_id||')'; 
+	sql_tsp := 'select id as id2 from pgr_aStarTPP_stdistance_closest_matrix order by id';
 	seq := 0;
 	-- We have declared source_var initial value as -1, not 0, coz any positive number could be the node_id of a point in ways_vertices_pgr table. --
 	-- But by making it negative, we are assuring that the following loop will enter only at the first time in the "If" section and no more later. --
@@ -105,7 +104,7 @@ begin
 				execute 'select node_id from pgr_aStarTPP_stdistance_closest_matrix where id = '||rec_tsp.id2||'' into node;
 				target_var := node.node_id;
 				-- Here we will calculate the shortest route between all the pairs of nodes using aStar(), which must be travelled in the order --
-				sql_astar := 'SELECT gid, the_geom, name, cost, source, target, 
+				sql_astar := 'SELECT gid, the_geom, name, cost, source, target,
 						ST_Reverse(the_geom) AS flip_geom FROM ' ||
 						'pgr_astar(''SELECT gid as id, source::integer, target::integer, '
 						|| 'length::double precision AS cost, '
@@ -113,7 +112,7 @@ begin
 						|| 'x2::double precision, y2::double precision,'
 						|| 'reverse_cost::double precision FROM '
 						|| quote_ident(tbl) || ''', '
-						|| source_var || ', ' || target_var 
+						|| source_var || ', ' || target_var
 						|| ' , true, true), '
 						|| quote_ident(tbl) || ' WHERE id2 = gid ORDER BY seq';
 				-- Extracting the geom obtained from each pair aStar() in a row by row manner and returning it back to the pgr_aStarTPP_stdistance_closest() --
@@ -124,12 +123,11 @@ begin
 						name := rec_astar.name;
 						cost := rec_astar.cost;
 						geom := rec_astar.the_geom;
-						raise notice 'cost indi %', rec_astar.cost;
 						RETURN NEXT;
 					End Loop;
 				source_var := target_var;
 			END IF;
-		END LOOP;	
+		END LOOP;
 	-- Drop the temporary tables, otherwise the next time you will run the query it will show that the pgr_aStarTPP_stdistance_closest_matrix table or pgr_aStarTPP_stdistance_closest_route table already exists --
 	drop table pgr_aStarTPP_stdistance_closest_route;
 	drop table pgr_aStarTPP_stdistance_closest_matrix;
@@ -139,13 +137,4 @@ $body$
 language plpgsql volatile STRICT;
 
 -- To use this function --
--- select geom from pgr_aStarTPP_stdistance_closest('ways', 28.97438,41.00311,28.95370,41.02163, 101, 102, 103)
-
-
-
-
-
-
-
-
-
+-- select geom from pgr_aStarTPP_stdistance_closest_1_via('ways', 28.97438,41.00311,28.95370,41.02163, 101)
