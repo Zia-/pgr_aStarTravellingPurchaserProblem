@@ -1,7 +1,3 @@
--- THE FOLLOWING PROCEDURAL FUNCTION WILL SOLVE OUR TRAVELLING PURCHASER PROBLEM --
--- The arguments are the table name, the starting and ending points coord and the via points ids (which we have defined in
--- the individual_stops table - Consult the Documentation of this repo) --
-
 create or replace function pgr_aStarTPP_radial_search_1_via_BESTSelection(IN tbl character varying,
 IN x1 double precision,
 IN y1 double precision,
@@ -157,16 +153,14 @@ begin
 		End Loop;
 	-- Now calculate the final pgr_tsp() for our best combination of A, B, and C matrix --
 
-	sql_tsp := 'select node_id from pgr_aStarTPP_radial_search_matrix order by id';
+	sql_tsp := 'select x, y, node_id from pgr_aStarTPP_radial_search_matrix order by id';
 	
 	For rec_astar in execute sql_tsp
 					Loop
 						--seq := seq +1 ;
 						--gid := rec_astar.gid;
 						--name := rec_astar.name;
-						--cost := rec_astar.cost;
-						--geom := rec_astar.the_geom;
-						nodeID := rec_astar.node_id;
+						gid := rec_astar.node_id;
 						RETURN NEXT;
 					End Loop;
 	
@@ -221,4 +215,5 @@ $body$
 language plpgsql volatile STRICT;
 
 
--- select node_id from pgr_aStarTPP_radial_search_1_via_BESTSelection('ways', 29.104768000000000,41.027425000000001,29.122485000000001,41.048262999999999, 101)
+-- select gid from pgr_aStarTPP_radial_search_1_via_BESTSelection('ways', 28.93160, 40.99315,28.97078, 41.01387, 101)
+-- Remove first and last row of results column as they represent start and end nodes. remaining are the best possible selections or our case.
