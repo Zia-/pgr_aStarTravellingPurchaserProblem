@@ -7,6 +7,8 @@ variadic double precision[],
 OUT seq integer,
 OUT gid integer,
 OUT name text,
+OUT xx text,
+OUT yy text,
 OUT cost double precision,
 OUT geom geometry
 )
@@ -161,6 +163,8 @@ begin
 						--gid := rec_astar.gid;
 						--name := rec_astar.name;
 						gid := rec_astar.node_id;
+						xx := rec_astar.x;
+						yy := rec_astar.y;
 						RETURN NEXT;
 					End Loop;
 
@@ -215,5 +219,5 @@ $body$
 language plpgsql volatile STRICT;
 
 
--- select gid from pgr_aStarTPP_radial_search_4_via_BESTSelection('ways', 28.93160, 40.99315,28.97078, 41.01387, 101)
+-- select gid as id, xx as x, yy as y from pgr_aStarTPP_radial_search_4_via_BESTSelection('ways', 28.93160, 40.99315,28.97078, 41.01387, 101)
 -- Remove first and last row of results column as they represent start and end nodes. remaining are the best possible selections or our case.
